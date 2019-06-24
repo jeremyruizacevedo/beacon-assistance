@@ -1,4 +1,4 @@
-from event.models import Assistance, Event
+from event.models import PersonEvent, Event
 from rest_framework import serializers
 
 
@@ -8,7 +8,7 @@ class EventSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class AssistanceSerializer(serializers.ModelSerializer):
+class PersonEventSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Assistance
+        model = PersonEvent
         fields = '__all__'

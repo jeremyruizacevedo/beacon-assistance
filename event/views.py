@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from event.serializers import EventSerializer, AssistanceSerializer
-from event.models import Event, Assistance
+from event.serializers import EventSerializer, PersonEventSerializer
+from event.models import Event, PersonEvent
 
 # Create your views here.
 
@@ -13,9 +13,9 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
 
 
-class AssistanceViewSet(viewsets.ModelViewSet):
+class PersonEventViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows event to be viewed or edited.
     """
-    queryset = Assistance.objects.all()
-    serializer_class = AssistanceSerializer
+    queryset = PersonEvent.objects.all()
+    serializer_class = PersonEventSerializer
