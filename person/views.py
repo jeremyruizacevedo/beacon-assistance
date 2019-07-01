@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime
 from django.shortcuts import render
 from django.http import HttpResponse
 from rest_framework import viewsets
@@ -7,10 +8,10 @@ from rest_framework.response import Response
 from rest_framework import authentication, permissions
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from person.serializers import UserSerializer
-
-CLIENT_ID = '2T7UFtSJkeeDhnnP3pjZe8et1M3F694tBuBG31F1'
-CLIENT_SECRET = '1pfD5cuFzl2BY5DmomcOE2t4Y5fJHcwAzeer2dQqGoXY1DCXrMzA3eRMo5taClhTCfdDVBsvN666wzI47Y3oxvHLXE8RzpLphYxLABcZ9V6T5uhQBhJsWQA7zrbfEGxk'
+from .serializers import UserSerializer, PersonSerializer
+from oauth2_provider.models import AccessToken, Application
+from .models import Person, Rol
+from .utils import get_access_token, create_person
 
 # Create your views here.
 
@@ -41,19 +42,26 @@ class Login(APIView):
             # A backend authenticated the credentials
             # Then we get a token for the created user.
             # This could be done differentley
-            r = requests.post('http://0.0.0.0:8000/o/token/',
-                              data={
-                                  'grant_type': 'password',
-                                  'username': request.data['username'],
-                                  'password': request.data['password'],
-                                  'client_id': CLIENT_ID,
-                                  'client_secret': CLIENT_SECRET,
-                              },
-                              )
-            return Response(r.json())
+            app = Application.objects.get(name="BEACON_APP")
+            access_token = AccessToken.objects.filter(
+                user=user, application=app, expires__gte=datetime.now())
+            if access_token.exists() and len(access_token) == 1:
+                AccessToken.objects.filter(user=user, application=app, expires__lte=datetime.now()).delete()
+                response = {
+                    "person": PersonSerializer(user.person).data,
+                    "access_token": access_token.last().token
+                }
+            else:
+                AccessToken.objects.filter(user=user, application=app).delete()
+                r = get_access_token(user.person, request)
+                response = {
+                    "person": PersonSerializer(user.person).data,
+                    "access_token": r.json()["access_token"]
+                }
+            return Response(response)
         else:
             # No backend authenticated the credentials
-            return Response({"access_token": None})
+            return Response({"person": None})
 
 
 class Register(APIView):
@@ -64,26 +72,12 @@ class Register(APIView):
         Registers user to the server. Input should be in the format:
         {"first_name": "foo", "last_name": "bar" "password": "1234abcd"}
         '''
-        # Put the data from the request into the serializer
-        serializer = UserSerializer(data=request.data)
-        # Validate the data
-        if serializer.is_valid():
-            # If it is valid, save the data (creates a user).
-            serializer.save()
-            return Response({})
-            '''
-            # Then we get a token for the created user.
-            # This could be done differentley
-            r = requests.post('http://0.0.0.0:8000/o/token/',
-                              data={
-                                  'grant_type': 'password',
-                                  'username': request.data['username'],
-                                  'password': request.data['password'],
-                                  'client_id': CLIENT_ID,
-                                  'client_secret': CLIENT_SECRET,
-                              },
-                              )
-            return Response(r.json())
-        return Response(serializer.errors)
-        '''
-        return Response({})
+        person = create_person(request.data)
+        if person:
+            r = get_access_token(person,request)
+            response = {
+                "person": PersonSerializer(person).data,
+                "access_token": r.json()["access_token"]
+            }
+            return Response(response)
+        return Response({"person": None})
