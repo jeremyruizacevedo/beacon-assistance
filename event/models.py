@@ -1,6 +1,7 @@
 from django.db import models
 from person.models import Person
 from beacon.models import Beacon
+from django.utils import timezone
 
 # Create your models here.
 
@@ -43,7 +44,7 @@ class Event(models.Model):
 class PersonEvent(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField(default=timezone.now)
     status = models.IntegerField(default=0)
 
     def __str__(self):

@@ -11,11 +11,14 @@ def create_person_event(person, event):
 
 
 def mark_assistance(person, event):
-    person_event = None
-    if event.start_time > datetime.now() and event.end_time < datetime.now():
-        person_event = PersonEvent.objects.filter(person=person, event=event)
-        if person_event.exists() and person_event.last().status == 0:
-            person_event.date = datetime.now()
-            person_event.status = 1
-            person_event.save()
-    return person_event
+    person_event = PersonEvent.objects.filter(person=person, event=event)
+    if person_event.exists() and person_event.last().status == 0:
+        person_event_upd = person_event.last()
+        person_event_upd.date = datetime.now()
+        if event.start_time < datetime.now() and datetime.now() < event.end_time :
+            person_event_upd.status = 1 # ASISTIO
+        elif datetime.now() > event.end_time:
+            person_event_upd.status = 2 # NO ASISTIO
+        person_event_upd.save()
+        return person_event_upd
+    return None
